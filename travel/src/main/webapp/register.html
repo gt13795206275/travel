@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>注册</title>
+	<link rel="stylesheet" type="text/css" href="css/common.css">
+	<link rel="stylesheet" href="css/register.css">
+	<!--导入jquery-->
+	<script src="js/jquery-3.3.1.js"></script>
+</head>
+<body>
+<!--引入头部-->
+<div id="header"></div>
+<!-- 头部 end -->
+<div class="rg_layout">
+	<div class="rg_form clearfix">
+		<div class="rg_form_left">
+			<p>新用户注册</p>
+			<p>USER REGISTER</p>
+		</div>
+		<div class="rg_form_center">
+
+			<!--注册表单-->
+			<form id="registerForm">
+				<!--提交处理请求的标识符-->
+				<input type="hidden" name="action" value="register">
+				<table style="margin-top: 25px;">
+					<tr>
+						<td class="td_left">
+							<label for="username">用户名</label>
+						</td>
+						<td class="td_right">
+							<input type="text" id="username" name="username" placeholder="请输入账号">
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+							<label for="password">密码</label>
+						</td>
+						<td class="td_right">
+							<input type="text" id="password" name="password" placeholder="请输入密码">
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+							<label for="email">Email</label>
+						</td>
+						<td class="td_right">
+							<input type="text" id="email" name="email" placeholder="请输入Email">
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+							<label for="name">姓名</label>
+						</td>
+						<td class="td_right">
+							<input type="text" id="name" name="name" placeholder="请输入真实姓名">
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+							<label for="telephone">手机号</label>
+						</td>
+						<td class="td_right">
+							<input type="text" onblur="validatePhone(this.value)" id="telephone" name="telephone" placeholder="请输入您的手机号">
+						</td>
+						<td>
+							<span id="phoneSpan"></span>
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+							<label for="sex">性别</label>
+						</td>
+						<td class="td_right gender">
+							<input type="radio" id="sex" name="sex" value="男" checked> 男
+							<input type="radio" name="sex" value="女"> 女
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+							<label for="birthday">出生日期</label>
+						</td>
+						<td class="td_right">
+							<input type="date" id="birthday" name="birthday" placeholder="年/月/日">
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+							<label for="check">验证码</label>
+						</td>
+						<td class="td_right check">
+							<input type="text" id="check" name="check" class="check">
+							<input onclick="sendMessage()" type="button" value="获取手机验证码" class="submit" id="phoneBtn">
+						</td>
+					</tr>
+					<tr>
+						<td class="td_left">
+						</td>
+						<td class="td_right check">
+							<input type="submit" class="submit" value="注册">
+							<span id="msg" style="color: red;"></span>
+						</td>
+					</tr>
+				</table>
+			</form>
+		</div>
+		<div class="rg_form_right">
+			<p>
+				已有账号？
+				<a href="#">立即登录</a>
+			</p>
+		</div>
+	</div>
+</div>
+<!--引入尾部-->
+<div id="footer"></div>
+<!--导入布局js，共享header和footer-->
+<script type="text/javascript" src="js/include.js"></script>
+<script>
+	//表单提交事件
+	$("#registerForm").submit(function () {
+		//发送ajax请求
+		//jquery获取表单所有的数据,实现封装，用于提交给后台。
+		var formData = $("#registerForm").serialize();
+		$.ajax({
+			url:"userServlet?methodName=register",
+			data:formData,
+			dataType:"json",
+			success:function (res) {
+				/**
+				 *  {message:success/fail/codeError}
+				 */
+				if(res.message=="codeError"){
+					$("#codeSpan").html("验证码错误").css("color","red");
+				}else if(res.message=="success"){
+					//注册成功，跳转到登陆页面
+					location.href="login.html";
+				}else{
+					//注册失败
+					alert("服务器异常，请稍后重试");
+				}
+			}
+		});
+		return false;//为了屏蔽表单的提交
+	});
+
+	//ajax请求校验手机号
+	function validatePhone(phone) {
+		var flag = false;//默认校验是失败的
+		//1.首先校验格式
+		var regExp = new RegExp("^((13[0-9])|(14[5,7])|(15[0-3,5-9])|(17[0,3,5-8])|(18[0-9])|166|198|199|(147))\\d{8}$");
+		var res = regExp.test(phone);
+		//2.如果格式正确的话，再发送给后台。
+		if(res){
+			$.ajax({
+				url:"userServlet?methodName=validatePhone",
+				data:{"phone":phone},
+				dataType:"json",
+				async:false,//修改成同步请求
+				success:function (res) {
+					/**
+					 * 	{message:yes/no}
+					 * 	yes:存在
+					 * 	no:不存在
+					 */
+					if(res.message=="yes"){
+						//存在
+						$("#phoneSpan").html("手机号已经被注册，请更换").css("color","red");
+					}else{
+						//不存在
+						$("#phoneSpan").html("√").css("color","green");
+						//检验是ok的
+						flag = true;
+					}
+				}
+			});
+		}else{
+			$("#phoneSpan").html("手机号码格式不正确").css("color","red");
+		}
+		return flag;
+	}
+
+	//ajax请求发送短信验证码
+	function sendMessage() {
+		//ajax请求后台发送短信
+		var phone = $("#telephone").val();
+		var res = validatePhone(phone);
+		if(res){
+			//校验成功，发送ajax请求，发送短信
+			$.ajax({
+				url:"userServlet?methodName=sendMessage",
+				data:{"phone":phone},
+				success:function (res) {
+					alert("ssssssss");
+					//30s倒计时，并且按钮是不能被点击的。
+					$("#phoneBtn").attr("disabled","disabled");
+					var time = 30;
+					var id =  setInterval(function () {
+						time--;
+						if(time>0){
+							$("#phoneBtn").val(time+"s后重新发送");
+						}else{
+							//倒计时结束，按钮再次可以被点击
+							clearInterval(id);
+							$("#phoneBtn").removeAttr("disabled");
+							$("#phoneBtn").val("重新发送");
+						}
+					},1000);
+				},
+				error:function (a,errorMsg,c) {
+					alert("请求发生错误:"+errorMsg);
+				}
+			});
+		}
+	}
+
+
+
+</script>
+</body>
+</html>
